@@ -1,59 +1,64 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import ContactForm from "./components/ContactForm";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "font-awesome/css/font-awesome.min.css";
 import "./App.css";
 
 function App() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [contacts, setContacts] = useState([
-    {
-      name: "Eric Elliot",
-      phone: "222-555-8575",
-    },
-    {
-      name: "John Doe",
-      phone: "111-222-3333",
-    },
-    {
-      name: "Jane Smith",
-      phone: "444-555-6666",
-    },
-  ]);
+  const [contacts, setContacts] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+
+  useEffect(() => {
+    axios
+      .get("http://localhost:8000/contacts/")
+      .then((response) => setContacts(response.data))
+      .catch((error) => setErrorMessage("Failed to fetch Contacts."));
+  }, []);
 
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
   };
 
-  const AddContact = (contact) => {
-    fetch("http://localhost:8000/contacts/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(contact),
-    })
-      .then((response) => response.json())
-      .then((data) => setContacts([...contacts, data]))
-      .catch((error) => console.error(error));
+  const AddContact = async (contact) => {
+    try {
+      const response = await axios.post(
+        "http://localhost:8000/contacts/",
+        contact
+      );
+      setContacts([...contacts, response.data]);
+    } catch (error) {
+      setErrorMessage("Failed to add contact");
+    }
   };
 
-  const handleDeleteContact = (id) => {
-    fetch(`/api/contacts/${id}/`, {
-      method: "DELETE",
-    })
-      .then(() => {
-        const updatedContacts = contacts.filter((contact) => contact.id !== id);
-        setContacts(updatedContacts);
-      })
-      .catch((error) => console.error(error));
+  const handleDeleteContact = async (id) => {
+    try {
+      await axios.delete(`http://localhost:8000/contacts/${id}/`);
+      const updatedContacts = contacts.filter((contact) => contact.id !== id);
+      setContacts(updatedContacts);
+    } catch (error) {
+      setErrorMessage("Failed to delete contact");
+    }
   };
 
   const filteredContacts = contacts.filter((contact) =>
-    contact.name.toLowerCase().includes(searchQuery.toLowerCase())
+    contact.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
+  console.log("filteredContacts", filteredContacts);
+  console.log("contacts:", contacts);
   return (
     <>
       <div className="card history z-depth-0">
         <div className="card-body">
+          {errorMessage && (
+            <div className="alert alert-danger">
+              <p>{errorMessage}</p>
+            </div>
+          )}
           <div className="d-flex justify-content-center align-items-center mb-5">
             <div className="d-flex align-items-center">
               <i className="fa fa-address-book fa-2x mr-2 mb-6"></i>
@@ -65,11 +70,12 @@ function App() {
             <h5 className="font-weight-reguar">Contacts</h5>
             <button
               type="button"
-              className="btni btn-light btn-sm font-weight-regular"
-              onClick={AddContact}
+              className="btn btn-light btn-sm font-weight-regular"
+              onClick={() => setShowForm(!showForm)}
             >
               + Add Contact
             </button>
+            {showForm && <ContactForm onSubmit={AddContact} />}
           </div>
           <div className="row">
             <div className="col-12">
@@ -82,32 +88,40 @@ function App() {
               />
             </div>
           </div>
-          <div className="list-group-flush">
-            {filteredContacts.map((contact, index) => (
-              <div
-                className="list-group-item d-flex justify-content-between align-items-center border-0 px-0"
-                key={index}
-              >
-                <div className="d-flex justify-content-start align-items-center">
-                  <p className="mb-0"></p>
-                  <div className="d-flex flex-column">
-                    <p className="small font-weight-bold mb-0">
-                      {contact.name}
-                    </p>
-                    <p className="small text-muted mb-0">
-                      <i className="fa fa-phone" aria-hidden="true"></i>{" "}
-                      {contact.phone}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  className="btn btn-danger btn-sm"
-                  onClick={() => handleDeleteContact(index)}
-                >
-                  <i className="fa fa-trash" aria-hidden="true"></i>
-                </button>
-              </div>
-            ))}
+          <div className="row mt-3">
+            <div className="col-12">
+              {filteredContacts.length > 0 ? (
+                <table className="table table-bordered">
+                  <thead className="thead-light">
+                    <tr>
+                      <th>Name</th>
+                      <th>Phone Number</th>
+                      <th>Email</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredContacts.map((contact) => (
+                      <tr key={contact.id}>
+                        <td>{contact.name}</td>
+                        <td>{contact.phone_number}</td>
+                        <td>{contact.email}</td>
+                        <td>
+                          <button
+                            className="btn btn-danger btn-sm"
+                            onClick={() => handleDeleteContact(contact.id)}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p>No contacts found.</p>
+              )}
+            </div>
           </div>
         </div>
       </div>

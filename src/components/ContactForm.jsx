@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-function ContactForm({ addContact }) {
+function ContactForm({ AddContact }) {
   const [first_name, setFirstName] = useState("");
   const [last_name, setLastName] = useState("");
   const [phone_number, setPhoneNumber] = useState("");
@@ -8,7 +8,7 @@ function ContactForm({ addContact }) {
   const handleSubmit = (event) => {
     event.preventDefault();
     const contact = { first_name, last_name, phone_number };
-    addContact(contact);
+    AddContact(contact);
     setFirstName("");
     setLastName("");
     setPhoneNumber("");
